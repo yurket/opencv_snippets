@@ -85,6 +85,18 @@ void PaintBlackRegion(cv::Mat img, const std::size_t y, const std::size_t x, con
     }
 }
 
+
+void ShowColoredRect(cv::Rect rect, cv::Vec3b color)
+{
+    std::cout << "Color is: " << color << std::endl;
+    cv::Mat m(rect.width, rect.height, CV_8UC3, color);
+
+    const std::string wName = "Colored rectangle";
+    cv::namedWindow(wName, cv::WINDOW_AUTOSIZE);
+    cv::imshow(wName, m);
+}
+
+
 void GettingSettingPixels2_9(const std::string &filename)
 {
     const std::string wName = "Example";
@@ -93,7 +105,7 @@ void GettingSettingPixels2_9(const std::string &filename)
     cv::Mat img_rgb = cv::imread(filename);
     std::cout << "image size: " << img_rgb.size << std::endl;
 
-    std::size_t y = 100, x = 50;
+    std::size_t y = 32, x = 117;
     cv::Vec3b pixelIntensity = img_rgb.at<cv::Vec3b>(y, x);
 
     std::cout << "BGR code of pixel (" << y << ", " << x << ") is: (" \
@@ -101,9 +113,46 @@ void GettingSettingPixels2_9(const std::string &filename)
               << (int) pixelIntensity[1] << ", " \
               << (int) pixelIntensity[2] << ")" << std::endl;
 
-    PaintBlackRegion(img_rgb, y, x);
+    // PaintBlackRegion(img_rgb, y, x);
+    ShowColoredRect(cv::Rect(1, 1, 100, 100), pixelIntensity);
     cv::imshow(wName, img_rgb);
 
+    while (true)
+    {
+        const char c = (char)cv::waitKey(0);
+        const char esc = 27;
+        if (c == esc)
+        {
+            break;
+        }
+    }
+}
+
+
+void KMeansOfRegion(const std::string &filename)
+{
+    const std::string wName = "k means";
+    cv::namedWindow(wName, cv::WINDOW_AUTOSIZE);
+
+    cv::Mat img_bgr = cv::imread(filename);
+    cv::Rect r(320, 120, 50, 50);
+    cv::Mat cropped_img(img_bgr, r);
+    cv::imshow(wName, cropped_img);
+    std::cout << "image size: " << cropped_img.size << std::endl;
+
+    cropped_img.convertTo(cropped_img, CV_32F);
+    cv::Mat flattened_img = cropped_img.reshape(0, 1);
+    const int K = 1;
+    const int attempts = 10;
+    const cv::TermCriteria terminationCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0);
+    cv::Mat centers, labels;
+    double compactness = kmeans(flattened_img, K, labels, terminationCriteria, attempts, cv::KMEANS_RANDOM_CENTERS, centers);
+    std::cout << "centers: " << centers << std::endl;
+
+    cv::Vec3f color = centers.at<cv::Vec3f>(0);
+    ShowColoredRect(cv::Rect(1,1, 200, 200), color);
+
+    cv::waitKey(0);
     while (true)
     {
         const char c = (char)cv::waitKey(0);
@@ -124,10 +173,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    // ShowImage2_1(argv[1]);
-    // ShowVideo2_3(argv[1]);
-    // Canny2_7(argv[1]);
-    GettingSettingPixels2_9(argv[1]);
+    KMeansOfRegion(argv[1]);
 
     return 0;
 }
