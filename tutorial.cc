@@ -128,30 +128,8 @@ void GettingSettingPixels2_9(const std::string &filename)
     }
 }
 
-
-void KMeansOfRegion(const std::string &filename)
+void WaitEscKey()
 {
-    const std::string wName = "k means";
-    cv::namedWindow(wName, cv::WINDOW_AUTOSIZE);
-
-    cv::Mat img_bgr = cv::imread(filename);
-    cv::Rect r(320, 120, 50, 50);
-    cv::Mat cropped_img(img_bgr, r);
-    cv::imshow(wName, cropped_img);
-    std::cout << "image size: " << cropped_img.size << std::endl;
-
-    cropped_img.convertTo(cropped_img, CV_32F);
-    cv::Mat flattened_img = cropped_img.reshape(0, 1);
-    const int K = 1;
-    const int attempts = 10;
-    const cv::TermCriteria terminationCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0);
-    cv::Mat centers, labels;
-    double compactness = kmeans(flattened_img, K, labels, terminationCriteria, attempts, cv::KMEANS_RANDOM_CENTERS, centers);
-    std::cout << "centers: " << centers << std::endl;
-
-    cv::Vec3f color = centers.at<cv::Vec3f>(0);
-    ShowColoredRect(cv::Rect(1,1, 200, 200), color);
-
     cv::waitKey(0);
     while (true)
     {
@@ -160,6 +138,51 @@ void KMeansOfRegion(const std::string &filename)
         if (c == esc)
         {
             break;
+        }
+    }
+}
+
+
+cv::Vec3b DetectColorCentroid(const cv::Mat img)
+{
+    cv::Mat img_ = img.clone();
+    img_.convertTo(img_, CV_32F);
+    cv::Mat flattened_img = img_.reshape(0, 1);
+    const int K = 1;
+    const int attempts = 10;
+    const cv::TermCriteria terminationCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0);
+    cv::Mat centers, labels;
+    double compactness = kmeans(flattened_img, K, labels, terminationCriteria, attempts, cv::KMEANS_RANDOM_CENTERS, centers);
+    std::cout << "centers: " << centers << std::endl;
+
+    // TODO: implicit type conversion...
+    cv::Vec3b color = centers.at<cv::Vec3f>(0);
+    return color;
+}
+
+
+void KMeansOfRegion(const std::string &filename)
+{
+    cv::Mat img_bgr = cv::imread(filename);
+
+    const std::string wName = "Image";
+    cv::namedWindow(wName, cv::WINDOW_AUTOSIZE);
+
+    const std::size_t step = 200;
+    const std::size_t w = img_bgr.size().width;
+    const std::size_t h = img_bgr.size().height;
+    for (std::size_t i = 0; i+step < w; i += step)
+    {
+        for (std::size_t j = 0; j+step < h; j += step)
+        {
+            cv::Rect r(i, j, step, step);
+            cv::Mat cropped_img(img_bgr, r);
+            cv::imshow(wName, cropped_img);
+
+            cv::Vec3b color = DetectColorCentroid(cropped_img);
+
+            ShowColoredRect(cv::Rect(1,1, 200, 200), color);
+            WaitEscKey();
         }
     }
 }
